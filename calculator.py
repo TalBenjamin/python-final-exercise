@@ -101,6 +101,80 @@ class Calculator:
         return tokenized_lst
 
     @staticmethod
+    def calculate_tokens(expression: list) -> float:
+        """
+        calculate expression that list of tokens represents
+        :param expression: expression to be calculated. (token list)
+        :return: result of calculation
+        :raises SyntaxError, ZeroDivisionError, OverFlowError, ValueError
+        """
+        operands_stk = []
+        operators_stk = []
+
+        for element in expression:
+            # if number add to operands stack
+            if isinstance(element, float):
+                operands_stk.append(element)
+            elif element == "(":
+                operators_stk.append(element)
+            elif element == ")":
+                # check that ")" doesn't come straight after (
+                if operators_stk and operators_stk[-1] == "(":
+                    raise SyntaxError("Invalid use of parenthesis")
+
+                # calculate everything until opening parenthesis
+                while operators_stk and operators_stk[-1] != "(":
+                    Calculator.calc_single(operands_stk, operators_stk)
+
+                # if operators stack is empty, it means that there is a missing (
+                if not operators_stk:
+                    raise SyntaxError("Invalid use of parenthesis")
+                # pop (
+                operators_stk.pop()
+            else:  # element is operator
+                # while current operator isn't pre unary, operators stack isn't empty, haven't reached "("
+                # and current operator is weaker or equal to top of stack
+                while not element.is_pre_unary() and operators_stk and operators_stk[-1] != "(" and \
+                        element.precedence <= operators_stk[-1].precedence:
+                    Calculator.calc_single(operands_stk, operators_stk)
+
+                # append current operator
+                operators_stk.append(element)
+
+        # Perform all remaining operations
+        while operators_stk:
+            Calculator.calc_single(operands_stk, operators_stk)
+
+        if len(operands_stk) != 1:
+            raise SyntaxError("Invalid expression")
+
+        return operands_stk[0]
+
+    @staticmethod
+    def calc_single(operands_stk: list, operators_stk: list):
+        """
+        performs single operation according to stack statuses
+        :return operation result
+        :raises SyntaxError, ZeroDivisionError, OverFlowError, ValueError
+        """
+        operator = operators_stk.pop()
+        # Catch ( out of place
+        if not isinstance(operator, Operator):
+            raise SyntaxError(f"Operator or parenthesis out of place: {operator}")
+
+        try:
+            if operator.is_unary:
+                op1 = operands_stk.pop()
+                result = operator.call_func(op1)
+            else:
+                op2 = operands_stk.pop()
+                op1 = operands_stk.pop()
+                result = operator.call_func(op1, op2)
+            operands_stk.append(result)
+        except IndexError:
+            raise SyntaxError(f"Operator or parenthesis out of place: {operator.symbol}")
+
+    @staticmethod
     def is_binary_minus(token_list) -> bool:
         # returns true if minus that comes when list is at this state is binary
         if not token_list:
@@ -115,14 +189,13 @@ class Calculator:
 
 def main():
     try:
-
-        exp = "345%7"
-        result = Calculator.tokenize(exp)
-        print(result)
+        exp = "65!/54!+16#"
+        lst = Calculator.tokenize(exp)
+        result = Calculator.calculate_tokens(lst)
+        result = int(result) if result.is_integer() else round(result, 10)
+        print(f"Result is:  {result}")
     except (SyntaxError, ValueError, ZeroDivisionError, OverflowError) as e:
         print(e)
-    except EOFError:
-        print("Invalid input")
 
 
 if __name__ == '__main__':
