@@ -133,7 +133,7 @@ class Calculator:
                 operators_stk.pop()
             else:  # element is operator
                 # while current operator isn't pre unary, operators stack isn't empty, haven't reached "("
-                # and current operator is weaker or equal to top of stack
+                # and current operator is weaker than top of stack
                 while not element.is_pre_unary() and operators_stk and operators_stk[-1] != "(" and \
                         element.precedence <= operators_stk[-1].precedence:
                     Calculator.calc_single(operands_stk, operators_stk)
@@ -157,6 +157,7 @@ class Calculator:
         :return operation result
         :raises SyntaxError, ZeroDivisionError, OverFlowError, ValueError
         """
+
         operator = operators_stk.pop()
         # Catch ( out of place
         if not isinstance(operator, Operator):
@@ -175,6 +176,20 @@ class Calculator:
             raise SyntaxError(f"Operator or parenthesis out of place: {operator.symbol}")
 
     @staticmethod
+    def evaluate(expression: str) -> float | int:
+        """
+        functions that connects it all. receives a string expression and tries to calculate it
+        :return: result of calculation
+        :raises SyntaxError, ValueError, ZeroDivisionError, OverflowError
+        """
+        expression = "".join(expression.split())  # remove all whitespaces
+        token_lst = Calculator.tokenize(expression)
+        print(token_lst)
+        result = Calculator.calculate_tokens(token_lst)
+        result = int(result) if result.is_integer() else round(result, 10)
+        return result
+
+    @staticmethod
     def is_binary_minus(token_list) -> bool:
         # returns true if minus that comes when list is at this state is binary
         if not token_list:
@@ -186,16 +201,33 @@ class Calculator:
             return prev.is_unary and not prev.is_pre
         return False
 
+    @staticmethod
+    def testing(expression: str) -> float | int | str:
+        """
+       function used for testing calculator. does exactly what evaluate does, except it returns "ERROR" if there was
+       error
+       :return: result of calculation
+       """
+        expression = "".join(expression.split())  # remove all whitespaces
+        try:
+            token_lst = Calculator.tokenize(expression)
+            result = Calculator.calculate_tokens(token_lst)
+            result = int(result) if result.is_integer() else round(result, 10)
+            return result
+
+        except (SyntaxError, ValueError, ZeroDivisionError, OverflowError):
+            return "ERROR"
+
 
 def main():
     try:
-        exp = "65!/54!+16#"
-        lst = Calculator.tokenize(exp)
-        result = Calculator.calculate_tokens(lst)
-        result = int(result) if result.is_integer() else round(result, 10)
+        exp = input("Enter math expression: ")
+        result = Calculator.evaluate(exp)
         print(f"Result is:  {result}")
     except (SyntaxError, ValueError, ZeroDivisionError, OverflowError) as e:
         print(e)
+    except EOFError:
+        print("Invalid input")
 
 
 if __name__ == '__main__':
