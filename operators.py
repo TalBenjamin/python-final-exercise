@@ -1,19 +1,25 @@
 class Operator:
 
     def __init__(self, symbol: str, precedence: float, func: callable, is_unary: bool = False,
-                 is_pre: bool = False):
+                 is_pre: bool = False, is_single: bool = False):
         self.symbol = symbol
         self.precedence = precedence
         self.func = func
         self.is_unary = is_unary
         self.is_pre = is_pre
+        self.is_single = is_single   # if 2 cant appear in a row (only relevant for unary)
 
     def call_func(self, op1: float, op2: float = None) -> float:
+        """calls and return the result of function of the operator"""
         return self.func(op1) if self.is_unary else self.func(op1, op2)
 
     def is_pre_unary(self) -> bool:
         """returns true if this operator is pre unary"""
         return self.is_unary and self.is_pre
+
+    def is_post_unary(self) -> bool:
+        """returns true if this operator is post unary"""
+        return self.is_unary and not self.is_pre
 
     def can_come_after(self, prev_element) -> bool:
         """

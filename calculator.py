@@ -32,10 +32,11 @@ class Calculator:
         tokenized_lst = []
         in_num = False
         cur_num = ""
-        has_tilda = False  # Flag used to check if operand has more than 1 ~
+        last_single = ""  # used to check operators that cant appear more than once
         for char in expression:
 
             if char == ".":  # take care of decimal point
+                last_single = ""  # nullify this flag
                 if not in_num:
                     cur_num = "0."
                     in_num = True
@@ -46,7 +47,7 @@ class Calculator:
 
             # append digit to cur_num
             elif char.isnumeric():
-                has_tilda = False
+                last_single = ""  # nullify this flag
                 in_num = True
                 cur_num += char
 
@@ -55,50 +56,71 @@ class Calculator:
                 if char == "(":
                     if in_num:
                         raise SyntaxError("Invalid use of parenthesis")
-                    has_tilda = False
+                    last_single = ""  # nullify this flag
 
                 # if was in number, append to list before continuing
                 if in_num:
+                    # check if operand is in ok position
+                    if not Calculator.check_position(tokenized_lst, float(cur_num)):
+                        raise SyntaxError("Operand out of place")
                     tokenized_lst.append(float(cur_num))
-                    has_tilda = False
+                    last_single = ""  # nullify this flag
                     cur_num = ""
                     in_num = False
 
                 # if parenthesis, append to list and move to next char
                 if char in Calculator.ALLOWED_PARENTHESIS:
+                    if char == ")" and tokenized_lst and tokenized_lst[-1] == "(":
+                        raise SyntaxError("Improper use of parenthesis")
                     tokenized_lst.append(char)
                     continue
 
-                # check 2 tilda
-                if char == "~" and has_tilda:
-                    raise SyntaxError("Improper use of operator ~")
-                elif char == "~":
-                    has_tilda = True
+                if Calculator.OPERATORS[char].is_single:
+                    last_single = char
 
-                # catch unary minus and minus that is part of number (replace with ~)
-                if char == "-":
-                    if tokenized_lst and isinstance(tokenized_lst[-1], Operator):
-                        char = "~"  # minus that is part of operand. max precedence
-                    elif not Calculator.is_binary_minus(tokenized_lst):
-                        char = "~~"  # unary minus
+                # check that 2 single operators don't appear in a row (like ~)
+                if Calculator.OPERATORS[char].is_single and last_single == char:
+                    raise SyntaxError(f"Improper use of operator {char}")
 
-                # get Operator object of char
-                operator = Calculator.OPERATORS[char]
-
-                # check if operator is in ok place
-                if not operator.can_come_after(tokenized_lst[-1] if tokenized_lst else None):
-                    raise SyntaxError(f"Operator out of place: {operator.symbol}")
-
-                tokenized_lst.append(operator)  # append Operator object to list
+                Calculator.handle_operator_tokenization(tokenized_lst, char)
 
             else:  # invalid character
                 raise SyntaxError("Invalid character in input")
 
-        # add last number in string, if there is one
+        # if in number, append to list
         if in_num:
             tokenized_lst.append(float(cur_num))
 
         return tokenized_lst
+
+    @staticmethod
+    def handle_operator_tokenization(token_list: list, operator: str):
+        """
+        handles everything related to adding operator to token list.
+        :param token_list: token list
+        :param operator: operator to check
+        :raises SyntaxError if operator isn't in valid place
+        """
+        if operator == "~":
+            if (token_list and isinstance(token_list[-1], Operator) and
+                    (token_list[-1].symbol == "~~" or token_list[-1].symbol == "~")):
+                raise SyntaxError("Improper use of operator ~")
+
+            # catch unary minus and minus that is part of number (replace with ~)
+        if operator == "-":
+            if token_list and isinstance(token_list[-1], Operator):
+                operator = "~"  # minus that is part of operand. max precedence
+            elif not Calculator.is_binary_minus(token_list):
+                operator = "~~"  # unary minus
+
+            # get Operator object of char
+        operator = Calculator.OPERATORS[operator]
+
+        # check if operator is in ok place
+        if not operator.can_come_after(token_list[-1] if token_list else None):
+            raise SyntaxError(f"Operator out of place: {operator.symbol}")
+
+        token_list.append(operator)  # append Operator object to list
 
     @staticmethod
     def calculate_tokens(expression: list) -> float:
@@ -119,8 +141,8 @@ class Calculator:
                 operators_stk.append(element)
             elif element == ")":
                 # check that ")" doesn't come straight after (
-                if operators_stk and operators_stk[-1] == "(":
-                    raise SyntaxError("Invalid use of parenthesis")
+                # if operators_stk and operators_stk[-1] == "(":
+                #  raise SyntaxError("Invalid use of parenthesis")
 
                 # calculate everything until opening parenthesis
                 while operators_stk and operators_stk[-1] != "(":
@@ -184,13 +206,13 @@ class Calculator:
         """
         expression = "".join(expression.split())  # remove all whitespaces
         token_lst = Calculator.tokenize(expression)
-        print(token_lst)
+        # print(token_lst)
         result = Calculator.calculate_tokens(token_lst)
         result = int(result) if result.is_integer() else round(result, 10)
         return result
 
     @staticmethod
-    def is_binary_minus(token_list) -> bool:
+    def is_binary_minus(token_list: list) -> bool:
         # returns true if minus that comes when list is at this state is binary
         if not token_list:
             return False
@@ -218,10 +240,33 @@ class Calculator:
         except (SyntaxError, ValueError, ZeroDivisionError, OverflowError):
             return "ERROR"
 
+    @staticmethod
+    def check_position(token_list: list, element: str | float) -> bool:
+        """
+        checks if element can come in the end of token_list
+        :param token_list: token list
+        :param element: element to check. can be str (parenthesis) or float
+        :return: true if yes, false otherwise
+        """
+        if isinstance(element, str):
+            if element == "(":
+                if not token_list:
+                    return True
+                return isinstance(token_list[-1], Operator) and (not token_list[-1].is_unary or token_list[-1].is_pre)
+
+        if isinstance(element, float):
+            if not token_list:
+                return True
+            return token_list[-1] == "(" or (
+                    isinstance(token_list[-1], Operator) and not token_list[-1].is_post_unary())
+
+        return False
+
 
 def main():
     try:
         exp = input("Enter math expression: ")
+
         result = Calculator.evaluate(exp)
         print(f"Result is:  {result}")
     except (SyntaxError, ValueError, ZeroDivisionError, OverflowError) as e:

@@ -2,15 +2,15 @@ from math import pow
 
 
 def add(operand1: float, operand2: float) -> float:
-    return float(operand1 + operand2)
+    return round(float(operand1 + operand2), 10)
 
 
 def sub(operand1: float, operand2: float) -> float:
-    return float(operand1 - operand2)
+    return round(float(operand1 - operand2), 10)
 
 
 def mul(operand1: float, operand2: float) -> float:
-    return float(operand1 * operand2)
+    return round(float(operand1 * operand2), 10)
 
 
 def div(operand1: float, operand2: float) -> float:
@@ -18,7 +18,7 @@ def div(operand1: float, operand2: float) -> float:
     :return: result of operand1/operand2
     :raises: ZeroDivisionError if operand2 is 0
     """
-    return float(operand1 / operand2)
+    return round(float(operand1 / operand2), 10)
 
 
 def power(operand1: float, operand2: float) -> float:
@@ -29,13 +29,13 @@ def power(operand1: float, operand2: float) -> float:
              OverFlowError - if result too big
     """
     try:
-        return pow(operand1, operand2)
+        return round(pow(operand1, operand2), 10)
     except ValueError:
         raise ValueError(f"Can't do {operand1}^{operand2}")
 
 
 def my_avg(operand1: float, operand2: float) -> float:
-    return float((operand1 + operand2) / 2)
+    return round(float((operand1 + operand2) / 2), 10)
 
 
 def my_max(operand1: float, operand2: float) -> float:
@@ -52,7 +52,7 @@ def modulo(operand1: float, operand2: float) -> float:
     :return: result
     :raises: ZeroDivisionError
     """
-    return float(operand1 % operand2)
+    return round(float(operand1 % operand2), 10)
 
 
 def neg(operand1: float) -> float:
