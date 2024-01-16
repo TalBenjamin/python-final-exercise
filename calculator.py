@@ -35,7 +35,7 @@ class Calculator:
         """
         in_num = False
         cur_num = ""
-        last_single = ""  # used to check operators that cant appear more than once
+        last_single = ""  # used to check operators that cant appear more than once in a row (like tilda)
         for char in self.__expression:
 
             if char == ".":  # take care of decimal point
@@ -55,7 +55,7 @@ class Calculator:
                 cur_num += char
 
             elif char in Calculator.OPERATORS or char in Calculator.ALLOWED_PARENTHESIS:  # operator or parenthesis
-                # if opening parenthesis, disable tilda flag and check if it comes after operand
+                # if opening parenthesis, disable flag and check if it comes after operand
                 if char == "(":
                     if in_num:
                         raise SyntaxError("Invalid use of parenthesis")
@@ -82,6 +82,7 @@ class Calculator:
                 if Calculator.OPERATORS[char].is_single and last_single == char:
                     raise SyntaxError(f"Improper use of operator {char}")
 
+                # if this operator can't appear twice in a row, set flag to it
                 if Calculator.OPERATORS[char].is_single:
                     last_single = char
 
@@ -100,16 +101,19 @@ class Calculator:
         :param operator: operator to check
         :raises SyntaxError if operator isn't in valid place
         """
+        # check if tilda is in ok place (not after ~ or unary minus)
         if operator == "~":
-            if (self.__token_list and isinstance(self.__token_list[-1], Operator) and
-                    (self.__token_list[-1].symbol == "~~" or self.__token_list[-1].symbol == "~")):
+            if self.__token_list and isinstance(self.__token_list[-1], Operator) and  \
+                    (self.__token_list[-1].symbol == "~~" or self.__token_list[-1].symbol == "~"):
                 raise SyntaxError("Improper use of operator ~")
 
         # differentiate unary minus and minus that is part of number (replace with ~)
-        if operator == "-":
-            if self.__token_list and isinstance(self.__token_list[-1], Operator):
+        if operator == "-" and not self.__is_binary_minus():
+            # if the previous element was an operator (except for post unary), then this is a minus this is part of num
+            if (self.__token_list and isinstance(self.__token_list[-1], Operator) and
+                    not self.__token_list[-1].is_post_unary()):
                 operator = "~"  # minus that is part of operand. max precedence
-            elif not self.__is_binary_minus():
+            else:
                 operator = "~~"  # unary minus
 
         # get Operator object of char
@@ -135,10 +139,6 @@ class Calculator:
             elif element == "(":
                 self.__operators_stk.append(element)
             elif element == ")":
-                # check that ")" doesn't come straight after (
-                # if operators_stk and operators_stk[-1] == "(":
-                #  raise SyntaxError("Invalid use of parenthesis")
-
                 # calculate everything until opening parenthesis
                 while self.__operators_stk and self.__operators_stk[-1] != "(":
                     self.__calc_single()
@@ -197,10 +197,11 @@ class Calculator:
         :return: result of calculation
         :raises SyntaxError, ValueError, ZeroDivisionError, OverflowError
         """
-        self.__expression = "".join(expression.split())  # remove all whitespaces
+        # reset all lists
         self.__token_list = []
         self.__operators_stk = []
         self.__operands_stk = []
+        self.__expression = "".join(expression.split())  # remove all whitespaces
         self.__tokenize()
         # print(token_lst)
         result = self.__calculate_tokens()
@@ -208,13 +209,19 @@ class Calculator:
         return result
 
     def __is_binary_minus(self) -> bool:
-        # returns true if minus that comes when list is at this state is binary
+        """
+        checks if minus that comes when token list is at current state is binary or not. it is binary if it comes
+        after ")", post unary operator, or operand.
+        :return: True if binary minus, false otherwise
+        """
+        # empty list, not binary minus
         if not self.__token_list:
             return False
         prev = self.__token_list[-1]
+        # prev element is ")" or operand -> binary minus
         if prev == ")" or isinstance(prev, float):
             return True
-        if isinstance(prev, Operator):
+        if isinstance(prev, Operator):   # if prev element is operator, must be post unary
             return prev.is_unary and not prev.is_pre
         return False
 
@@ -222,7 +229,7 @@ class Calculator:
     def testing(expression: str) -> float | int | str:
         """
        function used for testing calculator. does exactly what evaluate does, except it returns "ERROR" if there was
-       error
+       error.
        :return: result of calculation
        """
         expression = "".join(expression.split())  # remove all whitespaces
@@ -239,12 +246,14 @@ class Calculator:
         :return: true if yes, false otherwise
         """
         if isinstance(element, str):
+            # parenthesis is valid if first in list, or if prev element is binary or pre unary operator
             if element == "(":
                 if not self.__token_list:
                     return True
                 return isinstance(self.__token_list[-1], Operator) and (
                         not self.__token_list[-1].is_unary or self.__token_list[-1].is_pre)
 
+        # operand is valid if first in list, or if previous element is (, or an operator that isn't post unary
         if isinstance(element, float):
             if not self.__token_list:
                 return True
@@ -256,8 +265,7 @@ class Calculator:
 
 def main():
     try:
-        # exp = input("Enter math expression: ")
-        exp = "2.2 * ~(7.7 - 3.4 @ 2) + 4 ^ (2 $ 5) / 524 % 8"
+        exp = input("Enter math expression: ")
         calc = Calculator()
         result = calc.evaluate(exp)
         print(f"Result is:  {result}")
