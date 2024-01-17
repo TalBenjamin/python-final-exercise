@@ -103,8 +103,8 @@ class Calculator:
         """
         # check if tilda is in ok place (not after ~ or unary minus)
         if operator == "~":
-            if self.__token_list and isinstance(self.__token_list[-1], Operator) and  \
-                    (self.__token_list[-1].symbol == "~~" or self.__token_list[-1].symbol == "~"):
+            if self.__token_list and isinstance(self.__token_list[-1], Operator) and \
+                    self.__token_list[-1].is_pre_unary():
                 raise SyntaxError("Improper use of operator ~")
 
         # differentiate unary minus and minus that is part of number (replace with ~)
@@ -221,7 +221,7 @@ class Calculator:
         # prev element is ")" or operand -> binary minus
         if prev == ")" or isinstance(prev, float):
             return True
-        if isinstance(prev, Operator):   # if prev element is operator, must be post unary
+        if isinstance(prev, Operator):  # if prev element is operator, must be post unary
             return prev.is_unary and not prev.is_pre
         return False
 
@@ -261,19 +261,3 @@ class Calculator:
                     isinstance(self.__token_list[-1], Operator) and not self.__token_list[-1].is_post_unary())
 
         return False
-
-
-def main():
-    try:
-        exp = input("Enter math expression: ")
-        calc = Calculator()
-        result = calc.evaluate(exp)
-        print(f"Result is:  {result}")
-    except (SyntaxError, ValueError, ZeroDivisionError, OverflowError) as e:
-        print(e)
-    except EOFError:
-        print("Invalid input")
-
-
-if __name__ == '__main__':
-    main()
