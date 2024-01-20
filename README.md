@@ -18,11 +18,12 @@ This is a pretty complex calculator with the following operators:
 
 # The calculator follows this logic:
   go over elements of expression
-    if operand, push to operand stack
-    if ( push to operators stack
-    if ) do all operations in operator stack until you reach (
-    if operator, do all operations in operator stack that are stronger or equal to current operator, add results to operand stack and current operator to operator stack
-  as long as there are operators in stack, perform all remaining operations.
+  - if operand, push to operand stack
+  - if ( push to operators stack
+  - if ) do all operations in operator stack until you reach (
+  - if operator, do all operations in operator stack that are stronger or equal to current operator, add results to operand stack and current operator to operator stack
+ 
+  As long as there are operators in stack, perform all remaining operations.
 
 # Some things to note 
   - the calculator completely disregards whitespaces
