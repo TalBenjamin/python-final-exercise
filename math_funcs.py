@@ -92,5 +92,7 @@ def hashtag(operand1: float) -> float:
     # convert to string and remove ".", then sum digits
     digit_sum = 0
     for digit in str(operand1).replace(".", ""):
+        if digit == 'e':
+            break
         digit_sum += int(digit)
     return float(digit_sum)
